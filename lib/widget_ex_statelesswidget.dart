@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nomad_flutter_webtoon/widgets/currency_card.dart';
-import 'widgets/button.dart';
+import 'package:nomad_flutter_webtoon/widgets/widget_ex_currency_card.dart';
+import 'widgets/widget_ex_button.dart';
 
 void main() {
   runApp(const App());

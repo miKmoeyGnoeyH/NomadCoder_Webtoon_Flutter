@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:nomad_flutter_webtoon/screens/detail_screen.dart';
 
@@ -45,7 +46,26 @@ class Webtoon extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Image.network(thumb),
+              child: CachedNetworkImage(
+                imageUrl: thumb,
+                placeholder: (context, url) => Container(
+                  width: 250,
+                  height: 324.5,
+                  clipBehavior: Clip.hardEdge,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 10,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 0),
+                        color: Colors.black.withOpacity(0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(

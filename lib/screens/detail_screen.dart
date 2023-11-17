@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:nomad_flutter_webtoon/models/webtoon_detail_model.dart';
 import 'package:nomad_flutter_webtoon/models/webtoon_episode_model.dart';
@@ -20,8 +21,24 @@ class DetailScreen extends StatefulWidget {
 }
 
 class _DetailScreenState extends State<DetailScreen> {
-  late Future<WebtoonDetailModel> webtoon;
-  late Future<List<WebtoonEpisodeModel>> episodes;
+  late Future<dynamic> detail;
+  late Future<dynamic> episodes;
+
+  @override
+  void initState() {
+    super.initState();
+    detail = ApiService.getToonById(widget.id);
+    episodes = ApiService.getLatestEpisodesById(widget.id);
+    initPrefs();
+  }
+
+  void retry() {
+    setState(() {
+      detail = ApiService.getToonById(widget.id);
+      episodes = ApiService.getLatestEpisodesById(widget.id);
+    });
+  }
+
   late SharedPreferences prefs;
   bool isLiked = false;
 
@@ -38,14 +55,6 @@ class _DetailScreenState extends State<DetailScreen> {
     } else {
       await prefs.setStringList("likedToons", []);
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    webtoon = ApiService.getToonById(widget.id);
-    episodes = ApiService.getLatestEpisodesById(widget.id);
-    initPrefs();
   }
 
   onHeartTap() async {
@@ -112,7 +121,26 @@ class _DetailScreenState extends State<DetailScreen> {
                           ),
                         ],
                       ),
-                      child: Image.network(widget.thumb),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.thumb,
+                        placeholder: (context, url) => Container(
+                          width: 250,
+                          height: 324.5,
+                          clipBehavior: Clip.hardEdge,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                blurRadius: 10,
+                                spreadRadius: -4,
+                                offset: const Offset(0, 0),
+                                color: Colors.black.withOpacity(0.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -121,58 +149,66 @@ class _DetailScreenState extends State<DetailScreen> {
                 height: 25,
               ),
               FutureBuilder(
-                future: webtoon,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          snapshot.data!.about,
-                          style: const TextStyle(
-                            fontSize: 16,
+                future: Future.wait([detail, episodes]),
+                builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    if (snapshot.data![0].runtimeType == WebtoonDetailModel &&
+                        snapshot.data![1].runtimeType ==
+                            List<WebtoonEpisodeModel>) {
+                      return Column(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                snapshot.data![0].about,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 15,
+                              ),
+                              Text(
+                                "${snapshot.data![0].genre} / ${snapshot.data![0].age}",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(
-                          height: 15,
-                        ),
-                        Text(
-                          "${snapshot.data!.genre} / ${snapshot.data!.age}",
-                          style: const TextStyle(
-                            fontSize: 16,
+                          const SizedBox(
+                            height: 25,
                           ),
+                          Column(
+                            children: [
+                              for (var episode in snapshot.data![1])
+                                Episode(
+                                  episode: episode,
+                                  webtoonId: widget.id,
+                                )
+                            ],
+                          ),
+                        ],
+                      );
+                    } else {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              size: 150,
+                            ),
+                            ElevatedButton(
+                                onPressed: retry, child: const Text('Retry')),
+                          ],
                         ),
-                      ],
-                    );
+                      );
+                    }
+                  } else {
+                    return const Center(child: CircularProgressIndicator());
                   }
-                  return const Text("...");
-                },
-              ),
-              const SizedBox(
-                height: 25,
-              ),
-              // episodes
-              FutureBuilder(
-                future: episodes,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    /*  ListView를 사용하지 않은 이유
-                        ListView는 여러 요소를 사용하는 데 최적화되어있지만
-                        구현하기에 까다로운 부분이 있음(context, index를 신경써줘야 함)
-                        getLatestEpisodesById는 10개의 에피소드만을 반환하는 Future
-                        ListView, ListViewBuilder는 리스트의 길이가 길어 최적화가 중요할 때 사용
-                        List의 길이를 몰랐다면 ListView를 사용했을 것 */
-                    return Column(
-                      children: [
-                        for (var episode in snapshot.data!)
-                          Episode(
-                            episode: episode,
-                            webtoonId: widget.id,
-                          )
-                      ],
-                    );
-                  }
-                  return Container();
                 },
               ),
             ],

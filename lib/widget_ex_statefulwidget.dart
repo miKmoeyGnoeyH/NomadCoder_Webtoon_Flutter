@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nomad_flutter_webtoon/screens/home_screen_123.dart';
+import 'package:nomad_flutter_webtoon/screens/widget_ex_home_screen.dart';
 
 void main() {
   runApp(const App());
